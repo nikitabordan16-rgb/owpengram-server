@@ -12,7 +12,7 @@ RUN apk add --no-cache ca-certificates git
 WORKDIR /src
 
 COPY go.mod go.sum ./
-RUN --mount=type=cache,id=gomod,target=/go/pkg/mod go mod download
+RUN --mount=type=cache,id=cacheKey-gomod,target=/go/pkg/mod go mod download
 
 COPY cmd/ ./cmd/
 COPY deploy/ ./deploy/
@@ -27,8 +27,8 @@ ARG VCS_BRANCH=unknown
 ARG VCS_TREE_STATE=unknown
 ARG BUILD_DATE=unknown
 
-RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
-    --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+RUN --mount=type=cache,id=cacheKey-gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=cacheKey-gobuild,target=/root/.cache/go-build \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath \
       -ldflags="-s -w -X main.gitCommit=${VCS_REF} -X main.gitBranch=${VCS_BRANCH} -X main.gitTreeState=${VCS_TREE_STATE} -X main.buildTime=${BUILD_DATE}" \
@@ -39,12 +39,12 @@ FROM build-base AS build-admin
 RUN apk add --no-cache nodejs npm
 WORKDIR /src/cmd/telesrv-admin/web
 
-RUN --mount=type=cache,id=npm,target=/root/.npm npm ci && npm run build
+RUN --mount=type=cache,id=cacheKey-npm,target=/root/.npm npm ci && npm run build
 
 WORKDIR /src
 
-RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
-    --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+RUN --mount=type=cache,id=cacheKey-gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=cacheKey-gobuild,target=/root/.cache/go-build \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" -o /out/telesrv-admin ./cmd/telesrv-admin
 
